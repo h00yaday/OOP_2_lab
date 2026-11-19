@@ -1,0 +1,152 @@
+' UML-діаграми до лабораторної роботи №3 «Диспетчер JSON» (предметна область «Кафедральна бібліотека»).
+' Переглянути: https://www.plantuml.com/plantuml або розширення PlantUML у VS Code.
+
+@startuml 1_Use_case_diagram
+title Діаграма прецедентів
+left to right direction
+actor Користувач
+rectangle "Диспетчер JSON — Кафедральна бібліотека" {
+  usecase "Відкрити JSON-файл" as UC1
+  usecase "Десеріалізувати дані" as UC1a
+  usecase "Переглянути список у таблиці" as UC2
+  usecase "Додати видання" as UC3
+  usecase "Редагувати видання" as UC4
+  usecase "Видалити видання" as UC5
+  usecase "Заповнити окрему форму" as UC34
+  usecase "Шукати (LINQ):\nавтор, вид, роки,\nчитач, ключове слово" as UC6
+  usecase "Зберегти у файл\n(серіалізація)" as UC7
+  usecase "Про програму / Довідка" as UC8
+  usecase "Вийти з підтвердженням" as UC9
+}
+Користувач --> UC1
+UC1 ..> UC1a : <<include>>
+Користувач --> UC2
+Користувач --> UC3
+Користувач --> UC4
+Користувач --> UC5
+UC3 ..> UC34 : <<include>>
+UC4 ..> UC34 : <<include>>
+Користувач --> UC6
+Користувач --> UC7
+Користувач --> UC8
+Користувач --> UC9
+@enduml
+
+@startuml 2_Class_diagram
+title Діаграма класів
+skinparam classAttributeIconSize 0
+
+class Library {
+  +Name : string
+  +Department : string
+  +Books : List<Book>
+}
+class Book {
+  +Id : int
+  +Title : string
+  +Authors : List<string>
+  +Annotation : string
+  +Type : string
+  +Year : int
+  +Publisher : string
+  +Pages : int?
+  +Readers : List<Reader>
+  +Clone() : Book
+}
+class Reader {
+  +FullName : string
+  +Faculty : string
+  +Department : string
+  +Position : string
+}
+class SearchCriteria {
+  +Author, Type, Reader, Keyword : string?
+  +YearFrom, YearTo : int?
+  +Sort : SortOrder
+}
+enum SortOrder {
+  ById
+  ByTitle
+  ByYearDescending
+  ByReadersDescending
+}
+
+class JsonLibraryStorage <<static>> {
+  +LoadAsync(path) : Task<Library>
+  +SaveAsync(library, path) : Task
+}
+class LibraryRepository {
+  +Library : Library
+  +FilePath : string?
+  +HasUnsavedChanges : bool
+  +OpenAsync(path)
+  +SaveAsync() / SaveAsAsync(path)
+  +Add(book) / Update(book) / Delete(book)
+  +GetBookTypes() : List<string>
+}
+class BookSearchService <<static>> {
+  +Search(books, criteria) : List<Book>
+}
+class BookValidator <<static>> {
+  +Validate(book) : List<string>
+}
+class ReaderTextConverter <<static>>
+class ExitService <<static>>
+class MainPage
+class BookEditPage {
+  +{static} ShowAsync(navigation, book) : Task<Book?>
+}
+class AboutPage
+class AuthorInfo <<static>>
+
+Library *-- "0..*" Book
+Book *-- "0..*" Reader
+SearchCriteria --> SortOrder
+LibraryRepository o--> Library
+LibraryRepository ..> JsonLibraryStorage
+BookSearchService ..> SearchCriteria
+MainPage --> LibraryRepository
+MainPage ..> BookSearchService
+MainPage ..> BookEditPage : відкриває
+MainPage ..> AboutPage : відкриває
+MainPage ..> ExitService
+BookEditPage ..> BookValidator
+BookEditPage ..> ReaderTextConverter
+AboutPage ..> AuthorInfo
+@enduml
+
+@startuml 3_Sequence_diagram
+title Діаграма послідовності: відкрити файл, додати видання, знайти і зберегти
+actor Користувач
+participant MainPage
+participant LibraryRepository as Repo
+participant JsonLibraryStorage as Storage
+participant BookEditPage as Form
+participant BookSearchService as Search
+
+Користувач -> MainPage : «Відкрити» → library.json
+MainPage -> Repo : OpenAsync(path)
+Repo -> Storage : LoadAsync(path)
+Storage --> Repo : Library (десеріалізація)
+MainPage -> Search : Search(books, criteria)
+Search --> MainPage : List<Book>
+MainPage --> Користувач : таблиця з 10 виданнями
+
+Користувач -> MainPage : «Додати»
+MainPage -> Form : ShowAsync(null)
+Користувач -> Form : заповнює поля, «Зберегти»
+Form -> Form : BookValidator.Validate()
+Form --> MainPage : Book
+MainPage -> Repo : Add(book)
+
+Користувач -> MainPage : Автор = «Нікітченко», «Шукати»
+MainPage -> Search : Search(books, criteria)
+Search --> MainPage : 2 видання
+MainPage --> Користувач : відфільтрована таблиця
+
+Користувач -> MainPage : «Зберегти»
+MainPage -> Repo : SaveAsync()
+Repo -> Storage : SaveAsync(library, path)
+Storage --> Repo : JSON-файл (серіалізація)
+MainPage --> Користувач : «Дані збережено»
+@enduml

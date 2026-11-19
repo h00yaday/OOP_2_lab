@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:Lab3Json.Models"
+             x:Class="Lab3Json.MainPage"
+             Title="Кафедральна бібліотека — диспетчер JSON">
+
+    <!-- Головне меню -->
+    <ContentPage.MenuBarItems>
+        <MenuBarItem Text="Файл">
+            <MenuFlyoutItem Text="Новий" Clicked="OnNewClicked" />
+            <MenuFlyoutItem Text="Відкрити JSON…" Clicked="OnOpenClicked" />
+            <MenuFlyoutItem Text="Відкрити приклад (library.json)" Clicked="OnOpenSampleClicked" />
+            <MenuFlyoutSeparator />
+            <MenuFlyoutItem Text="Зберегти" Clicked="OnSaveClicked" />
+            <MenuFlyoutItem Text="Зберегти як…" Clicked="OnSaveAsClicked" />
+            <MenuFlyoutItem Text="Показати файл у Провіднику" Clicked="OnShowInExplorerClicked" />
+            <MenuFlyoutSeparator />
+            <MenuFlyoutItem Text="Вийти" Clicked="OnExitClicked" />
+        </MenuBarItem>
+        <MenuBarItem Text="Дані">
+            <MenuFlyoutItem Text="Додати…" Clicked="OnAddClicked" />
+            <MenuFlyoutItem Text="Редагувати…" Clicked="OnEditClicked" />
+            <MenuFlyoutItem Text="Видалити" Clicked="OnDeleteClicked" />
+        </MenuBarItem>
+        <MenuBarItem Text="Пошук">
+            <MenuFlyoutItem Text="Шукати" Clicked="OnSearchClicked" />
+            <MenuFlyoutItem Text="Скинути фільтри" Clicked="OnResetClicked" />
+        </MenuBarItem>
+        <MenuBarItem Text="Довідка">
+            <MenuFlyoutItem Text="Як користуватися" Clicked="OnHelpClicked" />
+            <MenuFlyoutItem Text="Про програму" Clicked="OnAboutClicked" />
+        </MenuBarItem>
+    </ContentPage.MenuBarItems>
+
+    <Grid RowDefinitions="Auto,Auto,*" ColumnDefinitions="300,*" Padding="12" RowSpacing="8" ColumnSpacing="12">
+
+        <!-- Кнопки, що дублюють основні пункти меню -->
+        <HorizontalStackLayout Grid.Row="0" Grid.ColumnSpan="2" Spacing="6">
+            <Button Text="Відкрити" Clicked="OnOpenClicked" />
+            <Button Text="Приклад" Clicked="OnOpenSampleClicked" />
+            <Button Text="Зберегти" Clicked="OnSaveClicked" />
+            <Button Text="Зберегти як" Clicked="OnSaveAsClicked" />
+            <Button Text="Додати" Clicked="OnAddClicked" BackgroundColor="#27AE60" />
+            <Button Text="Редагувати" Clicked="OnEditClicked" />
+            <Button Text="Видалити" Clicked="OnDeleteClicked" BackgroundColor="#C0392B" />
+            <Button Text="Про програму" Clicked="OnAboutClicked" />
+            <Button Text="Довідка" Clicked="OnHelpClicked" />
+            <Button Text="Вийти" Clicked="OnExitClicked" />
+        </HorizontalStackLayout>
+
+        <Label x:Name="StatusLabel" Grid.Row="1" Grid.ColumnSpan="2" FontAttributes="Bold"
+               Text="Файл не відкрито. Натисніть «Відкрити» або «Приклад»." />
+
+        <!-- Критерії пошуку (LINQ) -->
+        <ScrollView Grid.Row="2" Grid.Column="0">
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Пошук (LINQ)" FontAttributes="Bold" FontSize="16" />
+
+                <Label Text="Автор (частина прізвища)" />
+                <Entry x:Name="AuthorEntry" Placeholder="наприклад: Нікітченко" Completed="OnSearchClicked" />
+
+                <Label Text="Вид видання (значення з файлу)" />
+                <Picker x:Name="TypePicker" Title="будь-який" />
+
+                <Label Text="Рік видання" />
+                <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="6">
+                    <Entry x:Name="YearFromEntry" Placeholder="з" Keyboard="Numeric" />
+                    <Label Text="—" Grid.Column="1" VerticalOptions="Center" />
+                    <Entry x:Name="YearToEntry" Grid.Column="2" Placeholder="по" Keyboard="Numeric" />
+                </Grid>
+
+                <Label Text="Читач (частина ПІБ)" />
+                <Entry x:Name="ReaderEntry" Placeholder="наприклад: Коваленко" Completed="OnSearchClicked" />
+
+                <Label Text="Ключове слово (назва / анотація)" />
+                <Entry x:Name="KeywordEntry" Placeholder="наприклад: шаблони" Completed="OnSearchClicked" />
+
+                <Label Text="Сортування" />
+                <Picker x:Name="SortPicker" />
+
+                <Button Text="Шукати" Clicked="OnSearchClicked" Margin="0,8,0,0" />
+                <Button Text="Скинути фільтри" Clicked="OnResetClicked" BackgroundColor="Gray" />
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Таблиця (Grid) з виданнями + деталі вибраного -->
+        <Grid Grid.Row="2" Grid.Column="1" RowDefinitions="Auto,*,Auto,Auto" RowSpacing="6">
+
+            <!-- Заголовок таблиці: ті самі колонки, що й у рядках -->
+            <Grid ColumnDefinitions="45,2.4*,1.6*,110,60,1.3*,70" BackgroundColor="#512BD4" Padding="6">
+                <Label Text="№" TextColor="White" FontAttributes="Bold" />
+                <Label Text="Назва" Grid.Column="1" TextColor="White" FontAttributes="Bold" />
+                <Label Text="Автори" Grid.Column="2" TextColor="White" FontAttributes="Bold" />
+                <Label Text="Вид" Grid.Column="3" TextColor="White" FontAttributes="Bold" />
+                <Label Text="Рік" Grid.Column="4" TextColor="White" FontAttributes="Bold" />
+                <Label Text="Видавництво" Grid.Column="5" TextColor="White" FontAttributes="Bold" />
+                <Label Text="Читачів" Grid.Column="6" TextColor="White" FontAttributes="Bold" />
+            </Grid>
+
+            <Border Grid.Row="1" Stroke="Gray" StrokeThickness="1">
+                <CollectionView x:Name="BooksView" SelectionMode="Single"
+                                SelectionChanged="OnSelectionChanged"
+                                EmptyView="Немає записів для відображення">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:Book">
+                            <Grid ColumnDefinitions="45,2.4*,1.6*,110,60,1.3*,70" Padding="6">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup Name="CommonStates">
+                                        <VisualState Name="Normal" />
+                                        <VisualState Name="Selected">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor" Value="#D6CCFF" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <Label Text="{Binding Id}" />
+                                <Label Text="{Binding Title}" Grid.Column="1" LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding AuthorsText}" Grid.Column="2" LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding Type}" Grid.Column="3" />
+                                <Label Text="{Binding Year}" Grid.Column="4" />
+                                <Label Text="{Binding Publisher}" Grid.Column="5" LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding ReadersCount}" Grid.Column="6" HorizontalTextAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Border>
+
+            <Label x:Name="CountLabel" Grid.Row="2" FontAttributes="Italic" />
+
+            <Border Grid.Row="3" Stroke="Gray" StrokeThickness="1" Padding="8" MinimumHeightRequest="120">
+                <Label x:Name="DetailsLabel" FontFamily="Consolas"
+                       Text="Виберіть рядок таблиці, щоб побачити анотацію та читачів." />
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>

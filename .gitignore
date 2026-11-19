@@ -1,0 +1,7 @@
+bin/
+obj/
+.vs/
+*.user
+*_result.html
+*.Backup.tmp
+*_saved.json
